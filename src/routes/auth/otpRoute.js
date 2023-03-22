@@ -3,7 +3,7 @@ import { verifyOTP, generateOTP } from "../../controllers/userController.js";
 
 const otpRoute = Router();
 
-otpRoute.post("/generateOTP", generateOTP);
+// otpRoute.post("/generateOTP", generateOTP);
 
 otpRoute.post("/verifyOTP", verifyOTP);
 

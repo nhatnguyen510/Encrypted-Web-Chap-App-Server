@@ -2,6 +2,9 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import UserModel from "../models/UserModel.js";
 import { config } from "../config/index.js";
+import otpGenerator from "otp-generator";
+import UserOTPVerificationModel from "../models/UserOTPVerificationModel.js";
+import { transporter } from "../config/email.js";
 
 export const register = async (req, res) => {
   const {
@@ -39,9 +42,19 @@ export const register = async (req, res) => {
       photo_url,
     });
 
-    await newUser.save();
+    const savedUser = await newUser.save();
 
-    return res.status(200).json({ message: "Registration was successful" });
+    console.log({ savedUser });
+
+    await sendOTPVerificationEmail(savedUser);
+
+    return res.status(200).json({
+      message: "Register successfully. Check your email for verification!",
+      data: {
+        user_id: savedUser._id,
+        username: savedUser.username,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res
@@ -137,9 +150,69 @@ export const getUserByUsername = async (req, res) => {
   }
 };
 
-export const generateOTP = async (req, res) => {};
+export const generateOTP = () => {
+  const otp = otpGenerator.generate(6, {
+    upperCase: false,
+    specialChars: false,
+    alphabets: false,
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    digits: true,
+  });
 
-export const verifyOTP = async (req, res) => {};
+  return otp;
+};
+
+export const verifyOTP = async (req, res) => {
+  const { user_id, otp } = req.body;
+
+  try {
+    const userOTPVerification = await UserOTPVerificationModel.findOne({
+      user_id,
+    });
+
+    if (!userOTPVerification) {
+      return res.status(404).json({
+        message: "OTP not found!",
+      });
+    }
+
+    if (userOTPVerification.expiredAt < new Date()) {
+      return res.status(400).json({
+        message: "OTP has expired!",
+      });
+    }
+
+    if (otp != userOTPVerification.otp) {
+      return res.status(400).json({
+        message: "OTP is incorrect!",
+      });
+    }
+
+    const user = await UserModel.findOneAndUpdate(
+      { _id: userOTPVerification.user_id },
+      { is_verified: true },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found!",
+      });
+    }
+
+    await UserOTPVerificationModel.findOneAndDelete({ user_id, otp });
+
+    return res.status(200).json({
+      message: "Verify OTP successfully!",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Something went wrong while verify OTP.",
+    });
+  }
+};
 
 export const logout = async (req, res) => {};
 
@@ -187,3 +260,33 @@ function generateRefreshToken(user) {
     { expiresIn: "7d" }
   );
 }
+
+const sendOTPVerificationEmail = async (user) => {
+  const { _id, email } = user;
+
+  const otp = generateOTP();
+
+  try {
+    const mailOptions = {
+      from: `${config.MAILER.MAILER_FROM} <${config.MAILER.MAILER_USERNAME}>`,
+      to: email,
+      subject: "[OTP Verification code]",
+      text: `Your OTP is ${otp}`,
+    };
+
+    const newOTPVerification = new UserOTPVerificationModel({
+      user_id: _id,
+      otp,
+      createdAt: Date.now(),
+      expiredAt: Date.now() + 60000,
+    });
+
+    await newOTPVerification.save();
+
+    const response = await transporter.sendMail(mailOptions);
+
+    return response;
+  } catch (err) {
+    console.log(err);
+  }
+};

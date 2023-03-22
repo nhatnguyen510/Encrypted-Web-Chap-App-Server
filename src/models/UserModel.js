@@ -32,6 +32,10 @@ const userSchema = mongoose.Schema(
       type: Date,
       required: true,
     },
+    is_verified: {
+      type: Boolean,
+      default: false,
+    },
     refresh_token: {
       type: String,
       default: null,
