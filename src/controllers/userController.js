@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import UserModel from "../models/UserModel.js";
+import { config } from "../config/index.js";
 
 export const register = async (req, res) => {
   const {
@@ -40,12 +41,12 @@ export const register = async (req, res) => {
 
     await newUser.save();
 
-    res.status(200).json({ message: "Registration was successful" });
+    return res.status(200).json({ message: "Registration was successful" });
   } catch (error) {
     console.error(error);
-    res
+    return res
       .status(500)
-      .json({ message: "Something went wrong while registering the user" });
+      .json({ message: "Something went wrong while registering the user." });
   }
 };
 
@@ -67,24 +68,27 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "24h",
-      }
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { username: user.username },
+      { refresh_token: refreshToken },
+      { new: true }
     );
+
+    console.log(updatedUser);
 
     return res.status(200).json({
       message: "Login successfully!",
-      token,
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Something went wrong" });
+    return res
+      .status(500)
+      .json({ message: "Something went wrong while login." });
   }
 };
 
@@ -105,7 +109,9 @@ export const updateUser = async (req, res) => {
       });
     }
   } catch (err) {
-    res.status(500).json({ message: "Something went wrong while logining!" });
+    res
+      .status(500)
+      .json({ message: "Something went wrong while updating user." });
   }
 };
 
@@ -116,17 +122,17 @@ export const getUserByUsername = async (req, res) => {
     const user = await UserModel.findOne({ username }).select("-password");
 
     if (user) {
-      res.status(200).json({
+      return res.status(200).json({
         user,
       });
     } else {
-      res.status(404).json({
+      return res.status(404).json({
         message: "User not found!",
       });
     }
   } catch (err) {
-    res.status(500).json({
-      message: "Something went wrong while got user!",
+    return res.status(500).json({
+      message: "Something went wrong while got user.",
     });
   }
 };
@@ -136,3 +142,48 @@ export const generateOTP = async (req, res) => {};
 export const verifyOTP = async (req, res) => {};
 
 export const logout = async (req, res) => {};
+
+export const refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  try {
+    const payload = jwt.verify(
+      refreshToken,
+      config.SECRET.REFRESH_TOKEN_SECRET
+    );
+    const user = await UserModel.findById(payload.userId);
+
+    console.log({ payload, user });
+
+    if (!user || user.refresh_token !== refreshToken) {
+      return res.status(401).json({ error: "Invalid refresh token." });
+    }
+
+    const newAccessToken = generateAccessToken(user);
+
+    return res.status(200).json({
+      accessToken: newAccessToken,
+    });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ error: "Something wrong while refreshing token." });
+  }
+};
+
+function generateAccessToken(user) {
+  return jwt.sign(
+    { userId: user._id, username: user.username },
+    config.SECRET.ACCESS_TOKEN_SECRET,
+    { expiresIn: "60s" }
+  );
+}
+
+function generateRefreshToken(user) {
+  return jwt.sign(
+    { userId: user._id, username: user.username },
+    config.SECRET.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
+}

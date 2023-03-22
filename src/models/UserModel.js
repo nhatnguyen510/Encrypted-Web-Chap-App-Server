@@ -4,7 +4,7 @@ const userSchema = mongoose.Schema(
   {
     username: {
       type: String,
-      required: true,
+      required: [true, "Username is required"],
       unique: true,
     },
     password: {
@@ -31,6 +31,10 @@ const userSchema = mongoose.Schema(
     date_of_birth: {
       type: Date,
       required: true,
+    },
+    refresh_token: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }
