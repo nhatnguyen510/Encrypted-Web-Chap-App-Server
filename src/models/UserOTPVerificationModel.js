@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const UserOTPVerificationSchema = mongoose.Schema({
+const UserOTPVerificationSchema = new mongoose.Schema({
   user_id: {
     type: String,
     required: true,
@@ -13,13 +13,13 @@ const UserOTPVerificationSchema = mongoose.Schema({
   createdAt: {
     type: Date,
   },
-  expiredAt: {
-    type: Date,
-  },
 });
+
+UserOTPVerificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 });
 
 const UserModel = mongoose.model(
   "UserOTPVerification",
   UserOTPVerificationSchema
 );
+
 export default UserModel;

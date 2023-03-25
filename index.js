@@ -5,8 +5,7 @@ import CryptoJS from "crypto-js";
 import cors from "cors";
 import router from "./src/routes/index.js";
 import morgan from "morgan";
-import connectDatabase from "./src/config/database.js";
-import { config } from "./src/config/index.js";
+import connectDatabase from "./src/models/database.js";
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -15,7 +14,9 @@ app.use(cors());
 app.use("/api/v1", router);
 app.use(morgan("dev"));
 
-const PORT = config.PORT || 5000;
+//If the config file uses the env, that means we need to env.config in each file in nodejs?
+
+const PORT = process.env.PORT || 5000;
 
 connectDatabase().then(() => {
   console.log("Connecting to Database successfully!");

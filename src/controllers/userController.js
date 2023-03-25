@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import UserModel from "../models/UserModel.js";
-import { config } from "../config/index.js";
+import { MAILER, SECRET } from "../config/index.js";
 import otpGenerator from "otp-generator";
 import UserOTPVerificationModel from "../models/UserOTPVerificationModel.js";
-import { transporter } from "../config/email.js";
+import { transporter } from "../utils/email/email.js";
 
 export const register = async (req, res) => {
   const {
@@ -177,12 +177,6 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    if (userOTPVerification.expiredAt < new Date()) {
-      return res.status(400).json({
-        message: "OTP has expired!",
-      });
-    }
-
     if (otp != userOTPVerification.otp) {
       return res.status(400).json({
         message: "OTP is incorrect!",
@@ -220,23 +214,29 @@ export const refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
 
   try {
-    const payload = jwt.verify(
+    jwt.verify(
       refreshToken,
-      config.SECRET.REFRESH_TOKEN_SECRET
+      SECRET.REFRESH_TOKEN_SECRET,
+      async (err, payload) => {
+        if (err) {
+          return res.status(401).json({ error: "Refresh token is expired." });
+        }
+
+        const user = await UserModel.findById(payload.userId);
+
+        console.log({ payload, user });
+
+        if (!user || user.refresh_token !== refreshToken) {
+          return res.status(400).json({ error: "Invalid refresh token." });
+        }
+
+        const newAccessToken = generateAccessToken(user);
+
+        return res.status(200).json({
+          accessToken: newAccessToken,
+        });
+      }
     );
-    const user = await UserModel.findById(payload.userId);
-
-    console.log({ payload, user });
-
-    if (!user || user.refresh_token !== refreshToken) {
-      return res.status(401).json({ error: "Invalid refresh token." });
-    }
-
-    const newAccessToken = generateAccessToken(user);
-
-    return res.status(200).json({
-      accessToken: newAccessToken,
-    });
   } catch (err) {
     console.log(err);
     return res
@@ -248,7 +248,7 @@ export const refreshToken = async (req, res) => {
 function generateAccessToken(user) {
   return jwt.sign(
     { userId: user._id, username: user.username },
-    config.SECRET.ACCESS_TOKEN_SECRET,
+    SECRET.ACCESS_TOKEN_SECRET,
     { expiresIn: "60s" }
   );
 }
@@ -256,7 +256,7 @@ function generateAccessToken(user) {
 function generateRefreshToken(user) {
   return jwt.sign(
     { userId: user._id, username: user.username },
-    config.SECRET.REFRESH_TOKEN_SECRET,
+    SECRET.REFRESH_TOKEN_SECRET,
     { expiresIn: "7d" }
   );
 }
@@ -268,7 +268,7 @@ const sendOTPVerificationEmail = async (user) => {
 
   try {
     const mailOptions = {
-      from: `${config.MAILER.MAILER_FROM} <${config.MAILER.MAILER_USERNAME}>`,
+      from: `${MAILER.MAILER_FROM} <${MAILER.MAILER_USERNAME}>`,
       to: email,
       subject: "[OTP Verification code]",
       text: `Your OTP is ${otp}`,
@@ -278,7 +278,6 @@ const sendOTPVerificationEmail = async (user) => {
       user_id: _id,
       otp,
       createdAt: Date.now(),
-      expiredAt: Date.now() + 60000,
     });
 
     await newOTPVerification.save();
