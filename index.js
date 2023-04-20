@@ -10,11 +10,14 @@ import connectDatabase from "./src/models/database.js";
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use("/api/v1", router);
 app.use(morgan("dev"));
-
-//If the config file uses the env, that means we need to env.config in each file in nodejs?
 
 const PORT = process.env.PORT || 5000;
 

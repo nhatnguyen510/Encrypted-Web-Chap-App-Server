@@ -4,6 +4,6 @@ import { Auth } from "../../middleware/auth.js";
 
 const profileRoute = Router();
 
-profileRoute.put("/updateUser/:id", Auth, updateUser);
+profileRoute.put("/updateUser/:id", updateUser);
 
 export default profileRoute;

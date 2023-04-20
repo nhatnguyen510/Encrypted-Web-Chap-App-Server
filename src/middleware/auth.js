@@ -2,11 +2,11 @@ import jwt from "jsonwebtoken";
 import { SECRET } from "../config/index.js";
 
 export const Auth = (req, res, next) => {
-  const token = req.headers?.authorization.split(" ")[1];
+  const token = req.headers?.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({
-      message: "Authorization Failed!",
+      message: "You are not authenticated!",
     });
   }
 

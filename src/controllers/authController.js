@@ -87,7 +87,7 @@ export const login = async (req, res) => {
     const updatedUser = await UserModel.findOneAndUpdate(
       { username: user.username },
       { refresh_token: refreshToken },
-      { new: true }
+      { new: true, select: "-password" }
     );
 
     console.log(updatedUser);
@@ -95,7 +95,7 @@ export const login = async (req, res) => {
     return res.status(200).json({
       message: "Login successfully!",
       accessToken,
-      refreshToken,
+      ...updatedUser._doc,
     });
   } catch (error) {
     console.error(error);
@@ -233,7 +233,7 @@ function generateAccessToken(user) {
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.ACCESS_TOKEN_SECRET,
-    { expiresIn: "60s" }
+    { expiresIn: "60m" }
   );
 }
 
