@@ -163,7 +163,32 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {};
+export const logout = async (req, res) => {
+  const { user_id } = req.body;
+
+  try {
+    const user = await UserModel.findOneAndUpdate(
+      { _id: user_id },
+      { refresh_token: "" },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found!",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Logout successfully!",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Something went wrong while logout.",
+    });
+  }
+};
 
 export const refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
@@ -233,7 +258,7 @@ function generateAccessToken(user) {
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.ACCESS_TOKEN_SECRET,
-    { expiresIn: "60m" }
+    { expiresIn: "30m" }
   );
 }
 
