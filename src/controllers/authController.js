@@ -94,7 +94,7 @@ export const login = async (req, res) => {
 
     return res.status(200).json({
       message: "Login successfully!",
-      accessToken,
+      access_token: accessToken,
       ...updatedUser._doc,
     });
   } catch (error) {
@@ -164,11 +164,20 @@ export const verifyOTP = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  const { user_id } = req.body;
+  const { userId: authUserId } = req.user;
+  const { userId } = req.params;
+
+  console.log({ authUserId, userId });
+
+  if (authUserId !== userId) {
+    return res.status(401).json({
+      message: "You are not authorized to logout this user!",
+    });
+  }
 
   try {
     const user = await UserModel.findOneAndUpdate(
-      { _id: user_id },
+      { _id: userId },
       { refresh_token: "" },
       { new: true }
     );
@@ -191,11 +200,11 @@ export const logout = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const { refreshToken } = req.body;
+  const { refresh_token } = req.body;
 
   try {
     jwt.verify(
-      refreshToken,
+      refresh_token,
       SECRET.REFRESH_TOKEN_SECRET,
       async (err, payload) => {
         if (err) {
@@ -206,14 +215,14 @@ export const refreshToken = async (req, res) => {
 
         console.log({ payload, user });
 
-        if (!user || user.refresh_token !== refreshToken) {
+        if (!user || user.refresh_token !== refresh_token) {
           return res.status(400).json({ error: "Invalid refresh token." });
         }
 
         const newAccessToken = generateAccessToken(user);
 
         return res.status(200).json({
-          accessToken: newAccessToken,
+          access_token: newAccessToken,
         });
       }
     );
@@ -258,14 +267,18 @@ function generateAccessToken(user) {
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.ACCESS_TOKEN_SECRET,
-    { expiresIn: "30m" }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_TIME }
   );
 }
 
 function generateRefreshToken(user) {
+  console.log(
+    "This is refresh token expired time: ",
+    process.env.REFRESH_TOKEN_EXPIRE_TIME
+  );
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_TIME }
   );
 }

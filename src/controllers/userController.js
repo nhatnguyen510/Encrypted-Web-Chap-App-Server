@@ -62,7 +62,9 @@ export const getFriends = async (req, res) => {
       userId: { $in: friendIds },
     }).select("-password -is_verified -refresh_token");
 
-    res.json(friends);
+    res.status(200).json({
+      friendsInfo,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal server error");

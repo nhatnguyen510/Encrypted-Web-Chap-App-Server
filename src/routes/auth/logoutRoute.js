@@ -3,6 +3,6 @@ import { logout } from "../../controllers/authController.js";
 
 const logoutRoute = Router();
 
-logoutRoute.post("/", logout);
+logoutRoute.get("/:userId", logout);
 
 export default logoutRoute;

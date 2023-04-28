@@ -10,13 +10,14 @@ import connectDatabase from "./src/models/database.js";
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use("/api/v1", router);
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: `${process.env.CLIENT_URL}`,
     credentials: true,
   })
 );
-app.use("/api/v1", router);
+
 app.use(morgan("dev"));
 
 const PORT = process.env.PORT || 5000;
