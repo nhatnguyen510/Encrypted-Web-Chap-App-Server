@@ -53,27 +53,105 @@ export const getFriends = async (req, res) => {
       $or: [{ requested_user_id: userId }, { accepted_user_id: userId }],
       status: "Accepted",
     });
+
     const friendIds = friends.map((friend) =>
       friend.requested_user_id === userId
         ? friend.accepted_user_id
         : friend.requested_user_id
     );
-    const friendsInfo = await UserModel.find({
-      userId: { $in: friendIds },
-    }).select("-password -is_verified -refresh_token");
 
-    res.status(200).json({
-      friendsInfo,
-    });
+    const friendsInfo = await UserModel.find({
+      _id: { $in: friendIds },
+    }).select("_id username first_name last_name");
+
+    res.status(200).json(friendsInfo);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal server error");
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getFriendRequest = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const friendRequests = await FriendModel.find({
+      accepted_user_id: userId,
+      status: "Pending",
+    });
+
+    if (!friendRequests) {
+      return res.status(404).json({
+        message: "Cannot find friend requests",
+      });
+    }
+
+    const friendRequestIds = friendRequests.map(
+      (friendRequest) => friendRequest.requested_user_id
+    );
+
+    const friendRequestsInfo = await UserModel.find({
+      _id: { $in: friendRequestIds },
+    }).select("_id username first_name last_name");
+
+    res.status(200).json(friendRequestsInfo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
 
 export const sendFriendRequest = async (req, res) => {
   const requested_user_id = req.user.userId;
   const { accepted_user_id } = req.body;
+
+  if (!accepted_user_id) {
+    return res.status(400).json({
+      message: "Accepted user id is required",
+    });
+  }
+
+  if (requested_user_id === accepted_user_id) {
+    return res.status(400).json({
+      message: "Cannot send friend request to yourself",
+    });
+  }
+
+  const existedUser = await UserModel.findById(accepted_user_id);
+
+  if (!existedUser) {
+    return res.status(404).json({
+      message: "Accepted user not found",
+    });
+  }
+
+  const existedFriendRequest = await FriendModel.findOne({
+    $or: [
+      {
+        requested_user_id,
+        accepted_user_id,
+      },
+      {
+        requested_user_id: accepted_user_id,
+        accepted_user_id: requested_user_id,
+      },
+    ],
+  });
+
+  if (existedFriendRequest?.status === "Pending") {
+    return res.status(400).json({
+      message: "Friend request already sent",
+    });
+  }
+
+  if (existedFriendRequest?.status === "Accepted") {
+    return res.status(400).json({
+      message: "Friend request already accepted",
+    });
+  }
 
   try {
     const newFriendRequest = new FriendModel({
@@ -91,6 +169,60 @@ export const sendFriendRequest = async (req, res) => {
 export const acceptFriendRequest = async (req, res) => {
   const accepted_user_id = req.user.userId;
   const { requested_user_id } = req.body;
+
+  if (!requested_user_id) {
+    return res.status(400).json({
+      message: "Requested user id is required",
+    });
+  }
+
+  if (accepted_user_id === requested_user_id) {
+    return res.status(400).json({
+      message: "Cannot accept friend request to yourself",
+    });
+  }
+
+  const existedUser = await UserModel.findById(requested_user_id);
+  if (!existedUser) {
+    return res.status(404).json({
+      message: "Requested user not found",
+    });
+  }
+
+  const existedFriendRequest = await FriendModel.findOne({
+    $or: [
+      {
+        requested_user_id,
+        accepted_user_id,
+      },
+      {
+        requested_user_id: accepted_user_id,
+        accepted_user_id: requested_user_id,
+      },
+    ],
+  });
+
+  if (!existedFriendRequest) {
+    return res.status(400).json({
+      message: "Friend request not found",
+    });
+  }
+
+  if (existedFriendRequest.status === "Accepted") {
+    return res.status(400).json({
+      message: "Friend request already accepted",
+    });
+  }
+
+  if (
+    existedFriendRequest.requested_user_id === accepted_user_id &&
+    existedFriendRequest.status === "Pending"
+  ) {
+    return res.status(400).json({
+      message: "You cannot accept your own friend request",
+    });
+  }
+
   try {
     const friendRequest = await FriendModel.findOneAndUpdate(
       {
@@ -101,9 +233,7 @@ export const acceptFriendRequest = async (req, res) => {
       { status: "Accepted" },
       { new: true }
     );
-    if (!friendRequest) {
-      return res.status(404).send("Friend request not found");
-    }
+
     res.status(200).json(friendRequest);
   } catch (error) {
     res.status(500).json(error);

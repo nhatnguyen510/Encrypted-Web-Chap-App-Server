@@ -6,10 +6,13 @@ import cors from "cors";
 import router from "./src/routes/index.js";
 import morgan from "morgan";
 import connectDatabase from "./src/models/database.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
+
 app.use("/api/v1", router);
 app.use(
   cors({
