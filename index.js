@@ -1,5 +1,5 @@
-import { createDiffieHellman, getDiffieHellman } from "diffie-hellman";
 import express from "express";
+import { createServer } from "http";
 import bodyParser from "body-parser";
 import CryptoJS from "crypto-js";
 import cors from "cors";
@@ -7,8 +7,11 @@ import router from "./src/routes/index.js";
 import morgan from "morgan";
 import connectDatabase from "./src/models/database.js";
 import cookieParser from "cookie-parser";
+import socket from "./src/lib/socket.js";
+import { createDiffieHellman, getDiffieHellman } from "diffie-hellman";
 
 const app = express();
+const server = createServer(app);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -27,7 +30,8 @@ const PORT = process.env.PORT || 5000;
 
 connectDatabase().then(() => {
   console.log("Connecting to Database successfully!");
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
+    socket(server);
     console.log(`Listening on PORT ${PORT}`);
   });
 });

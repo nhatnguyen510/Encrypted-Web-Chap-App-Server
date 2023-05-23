@@ -17,11 +17,12 @@ export const createConversation = async (req, res) => {
 };
 
 export const getConversation = async (req, res) => {
-  const { userId } = req.params;
+  const { userId } = req.user;
+  const { receiver_id } = req.params;
 
   try {
-    const conversation = await ConversationModel.find({
-      participants: { $in: [userId] },
+    const conversation = await ConversationModel.findOne({
+      participants: { $all: [userId, receiver_id] },
     });
 
     if (!conversation) {
@@ -37,13 +38,26 @@ export const getConversation = async (req, res) => {
 };
 
 export const sendMessage = async (req, res) => {
-  const { conversation_id, sender_id, receiver_id, message } = req.body;
+  const { conversation_id, sender_id, message } = req.body;
+
+  //check if sender is in conversation
+  const conversation = await ConversationModel.findOne({
+    _id: conversation_id,
+    participants: {
+      $in: [sender_id],
+    },
+  });
+
+  if (!conversation) {
+    return res.status(401).json({
+      message: "You are not allowed to send messages to this conversation!",
+    });
+  }
 
   try {
     const newMessage = new MessageModel({
       conversation_id,
       sender_id,
-      receiver_id,
       message,
     });
 
@@ -56,6 +70,21 @@ export const sendMessage = async (req, res) => {
 
 export const getMessages = async (req, res) => {
   const { conversation_id } = req.params;
+  const { userId } = req.user;
+
+  //check if user is in conversation
+  const conversation = await ConversationModel.findOne({
+    _id: conversation_id,
+    participants: {
+      $in: [userId],
+    },
+  });
+
+  if (!conversation) {
+    return res.status(401).json({
+      message: "You are not allowed to get messages in this conversation!",
+    });
+  }
 
   try {
     const messages = await MessageModel.find({

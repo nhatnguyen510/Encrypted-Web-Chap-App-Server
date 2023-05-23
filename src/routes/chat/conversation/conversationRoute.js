@@ -7,7 +7,7 @@ import messageRoute from "./messages/messageRoute.js";
 
 const conversationRoute = Router();
 
-conversationRoute.get("/:userId", getConversation);
+conversationRoute.get("/:receiver_id", getConversation);
 
 conversationRoute.post("/", createConversation);
 

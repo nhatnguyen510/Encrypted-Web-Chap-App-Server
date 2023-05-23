@@ -5,6 +5,7 @@ import { MAILER, SECRET } from "../config/index.js";
 import otpGenerator from "otp-generator";
 import UserOTPVerificationModel from "../models/UserOTPVerificationModel.js";
 import { transporter } from "../utils/email/email.js";
+import mongoose from "mongoose";
 
 export const register = async (req, res) => {
   const {

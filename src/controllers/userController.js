@@ -1,5 +1,7 @@
 import UserModel from "../models/UserModel.js";
 import FriendModel from "../models/FriendModel.js";
+import ConversationModel from "../models/ConversationModel.js";
+import mongoose from "mongoose";
 
 export const updateUser = async (req, res) => {
   const { userId } = req.user;
@@ -234,8 +236,33 @@ export const acceptFriendRequest = async (req, res) => {
       { new: true }
     );
 
+    const newConversation = new ConversationModel({
+      participants: [requested_user_id, accepted_user_id],
+    });
+
+    await newConversation.save();
+
     res.status(200).json(friendRequest);
   } catch (error) {
     res.status(500).json(error);
   }
+};
+
+export const getUserFriendIds = async (userId) => {
+  const friends = await FriendModel.find({
+    $or: [{ requested_user_id: userId }, { accepted_user_id: userId }],
+    status: "Accepted",
+  });
+
+  if (!friends) {
+    return [];
+  }
+
+  const friendIds = friends.map((friend) =>
+    friend.requested_user_id === userId
+      ? friend.accepted_user_id
+      : friend.requested_user_id
+  );
+
+  return friendIds;
 };
