@@ -39,6 +39,15 @@ const socket = (server) => {
 
     io.to(socket.id).emit("friendsOnline", friendsOnline);
 
+    //send prime and generator
+    const prime = process.env.PRIME;
+    const generator = process.env.GENERATOR;
+
+    io.to(socket.id).emit("primeAndGenerator", {
+      prime,
+      generator,
+    });
+
     //notify friends
     const notifyFriends = async (userId, event, status) => {
       friendsOnline.forEach((friendOnlineId) => {
@@ -57,8 +66,9 @@ const socket = (server) => {
 
       if (receiverSocketId) {
         io.to(`${receiverSocketId}`).emit("receiveMessage", {
+          id: data.id,
           conversation_id: data.conversation_id,
-          senderId: data.sender_id,
+          sender_id: data.sender_id,
           message: data.message,
         });
       }

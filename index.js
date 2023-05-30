@@ -1,5 +1,6 @@
 import express from "express";
-import { createServer } from "http";
+import { createServer } from "https";
+import { readFileSync } from "fs";
 import bodyParser from "body-parser";
 import CryptoJS from "crypto-js";
 import cors from "cors";
@@ -11,7 +12,13 @@ import socket from "./src/lib/socket.js";
 import { createDiffieHellman, getDiffieHellman } from "diffie-hellman";
 
 const app = express();
-const server = createServer(app);
+const server = createServer(
+  {
+    key: readFileSync("./cert/localhost-key.pem"),
+    cert: readFileSync("./cert/localhost.pem"),
+  },
+  app
+);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());

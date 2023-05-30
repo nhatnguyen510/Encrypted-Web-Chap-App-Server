@@ -7,6 +7,11 @@ import { Auth } from "../middleware/auth.js";
 
 const router = Router();
 
+router.get("/", (req, res) => {
+  res.json({
+    message: "Welcome to the API",
+  });
+});
 router.use("/auth", authRoute);
 router.use("/user", Auth, userRoute);
 router.use("/chat", Auth, chatRoute);

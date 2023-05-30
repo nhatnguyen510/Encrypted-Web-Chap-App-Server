@@ -273,10 +273,6 @@ function generateAccessToken(user) {
 }
 
 function generateRefreshToken(user) {
-  console.log(
-    "This is refresh token expired time: ",
-    process.env.REFRESH_TOKEN_EXPIRE_TIME
-  );
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.REFRESH_TOKEN_SECRET,
