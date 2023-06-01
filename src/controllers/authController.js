@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import UserModel from "../models/UserModel.js";
 import { MAILER, SECRET } from "../config/index.js";
@@ -32,30 +33,45 @@ export const register = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const newUser = new UserModel({
-      username,
-      password: hashedPassword,
-      first_name,
-      last_name,
-      email,
-      phone,
-      date_of_birth,
-      photo_url,
-    });
+    crypto.pbkdf2(
+      password,
+      process.env.MASTER_KEY_SALT,
+      100000,
+      64,
+      "sha512",
+      async (err, key) => {
+        if (err) {
+          console.log(err);
+        }
+        const master_key = key.toString("hex");
+        console.log({ master_key });
+        const newUser = new UserModel({
+          username,
+          password: hashedPassword,
+          first_name,
+          last_name,
+          email,
+          phone,
+          date_of_birth,
+          photo_url,
+          master_key,
+        });
 
-    const savedUser = await newUser.save();
+        const savedUser = await newUser.save();
 
-    console.log({ savedUser });
+        console.log({ savedUser });
 
-    await sendOTPVerificationEmail(savedUser);
+        await sendOTPVerificationEmail(savedUser);
 
-    return res.status(200).json({
-      message: "Register successfully. Check your email for verification!",
-      data: {
-        user_id: savedUser._id,
-        username: savedUser.username,
-      },
-    });
+        return res.status(200).json({
+          message: "Register successfully. Check your email for verification!",
+          data: {
+            user_id: savedUser._id,
+            username: savedUser.username,
+          },
+        });
+      }
+    );
   } catch (error) {
     console.error(error);
     return res

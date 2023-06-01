@@ -1,7 +1,10 @@
-import { createDiffieHellman, DiffieHellman } from "crypto";
+import { createDiffieHellman, DiffieHellman, randomBytes } from "crypto";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const salt = randomBytes(16);
+console.log(salt.toString("hex").length);
 
 const p = process.env.PRIME;
 const g = process.env.GENERATOR;
@@ -40,7 +43,7 @@ const abcSecret = abc.computeSecret(defPublicKey);
 const defSecret = def.computeSecret(abcPublicKey);
 
 console.log({
-  aliceSecret: aliceSecret.toString("hex"),
+  aliceSecret: aliceSecret.toString("hex").length,
   bobSecret: bobSecret.toString("hex"),
   alice2Secret: alice2Secret.toString("hex"),
   bob2Secret: bob2Secret.toString("hex"),

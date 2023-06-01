@@ -13,6 +13,12 @@ const friendSchema = new mongoose.Schema(
       enum: ["Pending", "Accepted", "Rejected"],
       required: true,
     },
+    requested_user_public_key: {
+      type: String,
+    },
+    accepted_user_public_key: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

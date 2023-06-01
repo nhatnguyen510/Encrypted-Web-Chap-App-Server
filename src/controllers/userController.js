@@ -108,7 +108,7 @@ export const getFriendRequest = async (req, res) => {
 
 export const sendFriendRequest = async (req, res) => {
   const requested_user_id = req.user.userId;
-  const { accepted_user_id } = req.body;
+  const { accepted_user_id, requested_user_public_key } = req.body;
 
   if (!accepted_user_id) {
     return res.status(400).json({
@@ -160,6 +160,7 @@ export const sendFriendRequest = async (req, res) => {
       requested_user_id,
       accepted_user_id,
       status: "Pending",
+      requested_user_public_key,
     });
     const savedFriendRequest = await newFriendRequest.save();
     res.status(200).json(savedFriendRequest);
@@ -170,7 +171,7 @@ export const sendFriendRequest = async (req, res) => {
 
 export const acceptFriendRequest = async (req, res) => {
   const accepted_user_id = req.user.userId;
-  const { requested_user_id } = req.body;
+  const { requested_user_id, accepted_user_public_key } = req.body;
 
   if (!requested_user_id) {
     return res.status(400).json({
@@ -232,17 +233,20 @@ export const acceptFriendRequest = async (req, res) => {
         accepted_user_id,
         status: "Pending",
       },
-      { status: "Accepted" },
+      { status: "Accepted", accepted_user_public_key },
       { new: true }
     );
+
+    console.log({ friendRequest });
 
     const newConversation = new ConversationModel({
       participants: [requested_user_id, accepted_user_id],
     });
 
     await newConversation.save();
+    const savedFriendRequest = await friendRequest.save();
 
-    res.status(200).json(friendRequest);
+    res.status(200).json(savedFriendRequest);
   } catch (error) {
     res.status(500).json(error);
   }
