@@ -9,16 +9,7 @@ import { transporter } from "../utils/email/email.js";
 import mongoose from "mongoose";
 
 export const register = async (req, res) => {
-  const {
-    username,
-    password,
-    first_name,
-    last_name,
-    email,
-    phone,
-    date_of_birth,
-    photo_url,
-  } = req.body;
+  const { username, password, first_name, last_name, email } = req.body;
 
   try {
     const existingUser = await UserModel.findOne({
@@ -51,9 +42,6 @@ export const register = async (req, res) => {
           first_name,
           last_name,
           email,
-          phone,
-          date_of_birth,
-          photo_url,
           master_key,
         });
 
@@ -236,10 +224,20 @@ export const refreshToken = async (req, res) => {
           return res.status(400).json({ error: "Invalid refresh token." });
         }
 
+        const decoded = jwt.decode(refresh_token);
+        const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+        const remainingTime = decoded.exp - currentTime;
+
         const newAccessToken = generateAccessToken(user);
+        // generate new refresh token using old expired day from old refresh token
+        const newRefreshToken = generateRefreshToken(user, remainingTime);
+
+        // save new refresh token to database
+        await user.updateOne({ refresh_token: newRefreshToken });
 
         return res.status(200).json({
           access_token: newAccessToken,
+          refresh_token: newRefreshToken,
         });
       }
     );
@@ -248,6 +246,52 @@ export const refreshToken = async (req, res) => {
     return res
       .status(500)
       .json({ error: "Something wrong while refreshing token." });
+  }
+};
+
+export const verifyUsername = async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const isUsernameExisted = await UserModel.findOne({ username });
+
+    if (isUsernameExisted) {
+      return res.status(400).json({
+        message: "Username is already existed!",
+      });
+    } else {
+      return res.status(200).json({
+        message: "Username is available!",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Something went wrong while verify username.",
+    });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const isEmailExisted = await UserModel.findOne({ email });
+
+    if (isEmailExisted) {
+      return res.status(400).json({
+        message: "Email is already existed!",
+      });
+    } else {
+      return res.status(200).json({
+        message: "Email is available!",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Something went wrong while verify email.",
+    });
   }
 };
 
@@ -288,10 +332,13 @@ function generateAccessToken(user) {
   );
 }
 
-function generateRefreshToken(user) {
+function generateRefreshToken(
+  user,
+  expiresIn = process.env.REFRESH_TOKEN_EXPIRE_TIME
+) {
   return jwt.sign(
     { userId: user._id, username: user.username },
     SECRET.REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_TIME }
+    { expiresIn }
   );
 }

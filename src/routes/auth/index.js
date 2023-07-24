@@ -5,6 +5,7 @@ import registerRoute from "./registerRoute.js";
 import tokenRoute from "./tokenRoute.js";
 import logoutRoute from "./logoutRoute.js";
 import { Auth } from "../../middleware/auth.js";
+import verificationRoute from "./verificationRoute.js";
 
 const authRoute = Router();
 
@@ -17,5 +18,7 @@ authRoute.use("/logout", Auth, logoutRoute);
 authRoute.use("/otp", otpRoute);
 
 authRoute.use("/token", tokenRoute);
+
+authRoute.use("/verify", verificationRoute);
 
 export default authRoute;

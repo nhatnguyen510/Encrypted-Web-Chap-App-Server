@@ -1,15 +1,6 @@
 import validator from "validator";
 export const validateUser = (req, res, next) => {
-  const {
-    username,
-    password,
-    first_name,
-    last_name,
-    email,
-    phone,
-    date_of_birth,
-    photo_url,
-  } = req.body;
+  const { username, password, first_name, last_name, email } = req.body;
 
   let errors = {};
 
@@ -32,22 +23,6 @@ export const validateUser = (req, res, next) => {
   if (!validator.isEmail(email)) {
     errors.email = "Email is not valid";
   }
-
-  if (!validator.isMobilePhone(phone)) {
-    errors.phone = "Phone number is not valid";
-  }
-
-  if (
-    !validator.isDate(date_of_birth, {
-      format: "DD/MM/YYYY",
-    })
-  ) {
-    errors.date_of_birth = "Date of birth is not valid";
-  }
-
-  // if (!validator.isURL(photo_url)) {
-  //   errors.photo_url = "Photo URL is not valid";
-  // }
 
   if (Object.keys(errors).length > 0) {
     return res.status(400).json(errors);

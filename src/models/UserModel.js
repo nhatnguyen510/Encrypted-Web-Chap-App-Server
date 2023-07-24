@@ -24,14 +24,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    phone: {
-      type: String,
-      required: true,
-    },
-    date_of_birth: {
-      type: Date,
-      required: true,
-    },
     is_verified: {
       type: Boolean,
       default: false,
