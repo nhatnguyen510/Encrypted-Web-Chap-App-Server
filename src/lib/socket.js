@@ -62,14 +62,31 @@ const socket = (server) => {
 
     // On send message
     socket.on("sendMessage", (data) => {
+      console.log({ OnlineUsers });
       const receiverSocketId = OnlineUsers.get(data.receiver_id);
 
       if (receiverSocketId) {
         io.to(`${receiverSocketId}`).emit("receiveMessage", {
-          id: data.id,
+          _id: data.id,
           conversation_id: data.conversation_id,
           sender_id: data.sender_id,
           message: data.message,
+          seen: data.seen,
+          lastMessage: data.lastMessage,
+          lastMessageAt: data.lastMessageAt,
+        });
+      }
+    });
+
+    socket.on("markMessagesAsSeen", (data) => {
+      console.log("markMessagesAsSeen", data);
+      const receiverSocketId = OnlineUsers.get(data.receiver_id);
+
+      if (receiverSocketId) {
+        io.to(`${receiverSocketId}`).emit("messagesSeen", {
+          conversation_id: data.conversation_id,
+          sender_id: data.sender_id,
+          seen: data.seen,
         });
       }
     });

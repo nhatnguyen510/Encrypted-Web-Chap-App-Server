@@ -3,10 +3,12 @@ import mongoose from "mongoose";
 const friendSchema = new mongoose.Schema(
   {
     requested_user_id: {
-      type: String,
+      type: mongoose.Types.ObjectId,
+      ref: "User",
     },
     accepted_user_id: {
-      type: String,
+      type: mongoose.Types.ObjectId,
+      ref: "User",
     },
     status: {
       type: String,

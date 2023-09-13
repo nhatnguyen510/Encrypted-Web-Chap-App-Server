@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const UserOTPVerificationSchema = new mongoose.Schema({
   user_id: {
-    type: String,
+    type: mongoose.Types.ObjectId,
+    ref: "User",
     required: true,
   },
   otp: {

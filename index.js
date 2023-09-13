@@ -1,5 +1,5 @@
 import express from "express";
-import { createServer } from "https";
+import { createServer } from "http";
 import { readFileSync } from "fs";
 import bodyParser from "body-parser";
 import CryptoJS from "crypto-js";
@@ -12,13 +12,7 @@ import socket from "./src/lib/socket.js";
 import { createDiffieHellman, getDiffieHellman } from "diffie-hellman";
 
 const app = express();
-const server = createServer(
-  {
-    key: readFileSync("./cert/localhost-key.pem"),
-    cert: readFileSync("./cert/localhost.pem"),
-  },
-  app
-);
+const server = createServer(app);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -40,21 +34,6 @@ connectDatabase().then(() => {
   server.listen(PORT, () => {
     socket(server);
     console.log(`Listening on PORT ${PORT}`);
-  });
-});
-
-// Generate the Diffie-Hellman key pair
-const dh = createDiffieHellman(128);
-
-app.post("/generateKey", (req, res) => {
-  const user = createDiffieHellman(dh.getPrime(), dh.getGenerator());
-  const publicKey = user.generateKeys();
-
-  // Send the public key to the client
-  res.json({
-    user,
-    publicKey: publicKey,
-    HexPublicKey: publicKey.toString("hex"),
   });
 });
 

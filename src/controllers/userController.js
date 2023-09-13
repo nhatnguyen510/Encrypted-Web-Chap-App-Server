@@ -56,15 +56,21 @@ export const getFriends = async (req, res) => {
       status: "Accepted",
     });
 
+    console.log({ friends });
+
     const friendIds = friends.map((friend) =>
-      friend.requested_user_id === userId
+      friend.requested_user_id == userId
         ? friend.accepted_user_id
         : friend.requested_user_id
     );
 
+    console.log({ friendIds });
+
     const friendsInfo = await UserModel.find({
       _id: { $in: friendIds },
     }).select("_id username first_name last_name");
+
+    console.log({ friendsInfo });
 
     res.status(200).json(friendsInfo);
   } catch (error) {
@@ -263,10 +269,12 @@ export const getUserFriendIds = async (userId) => {
   }
 
   const friendIds = friends.map((friend) =>
-    friend.requested_user_id === userId
-      ? friend.accepted_user_id
-      : friend.requested_user_id
+    friend.requested_user_id == userId
+      ? friend.accepted_user_id.toHexString()
+      : friend.requested_user_id.toHexString()
   );
+
+  console.log("friendIds: ", friendIds);
 
   return friendIds;
 };
