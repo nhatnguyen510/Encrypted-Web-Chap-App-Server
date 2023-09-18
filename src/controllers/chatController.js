@@ -144,6 +144,7 @@ export const seenMessage = async (req, res) => {
 
 export const getMessages = async (req, res) => {
   const { conversation_id } = req.params;
+  const { page, limit } = req.query;
   const { userId } = req.user;
 
   //check if user is in conversation
@@ -161,9 +162,17 @@ export const getMessages = async (req, res) => {
   }
 
   try {
-    const messages = await MessageModel.find({
-      conversation_id,
-    });
+    const options = {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+    };
+
+    const query = { conversation_id }; // Add any additional query criteria here
+
+    const result = await MessageModel.paginate(query, options);
+
+    const messages = result.docs.reverse();
 
     if (!messages) {
       return res.status(404).json({
